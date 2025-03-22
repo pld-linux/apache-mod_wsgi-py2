@@ -21,15 +21,15 @@ Source0:	https://github.com/GrahamDumpleton/mod_wsgi/archive/%{version}/mod_%{mo
 Source1:	%{name}.conf
 URL:		http://www.modwsgi.org/
 BuildRequires:	%{apxs}
-BuildRequires:	apache-devel >= 2.0.52-7
+BuildRequires:	apache-devel >= 2.2
 BuildRequires:	apr-devel >= 1:1.0.0
 BuildRequires:	autoconf
 BuildRequires:	automake
 %if %{with python2}
-BuildRequires:	python-devel >= 2.3
+BuildRequires:	python-devel >= 1:2.6
 %endif
 %if %{with python3}
-BuildRequires:	python3-devel
+BuildRequires:	python3-devel >= 1:3.3
 %endif
 BuildRequires:	rpmbuild(macros) >= 1.268
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
@@ -53,12 +53,12 @@ przypadku używania istniejących adapterów WSGI dla modułu mod_python
 lub CGI.
 
 %package py2
-Summary:	WSGI interface for the Apache Web server
-Summary(pl.UTF-8):	Interfejs WSGI dla serwera WWW Apache
+Summary:	Python 2.x WSGI interface for the Apache Web server
+Summary(pl.UTF-8):	Interfejs WSGI Pythona 2.x dla serwera WWW Apache
 Group:		Networking/Daemons
 Requires:	apache(modules-api) = %{apache_modules_api}
 Requires:	apr >= 1:1.0.0
-Requires:	python-modules
+Requires:	python-modules >= 1:2.6
 Provides:	apache(mod_wsgi) = %{version}-%{release}
 Obsoletes:	apache-mod_wsgi < 4.5.7-0.2
 Conflicts:	%{name}-py3
@@ -81,14 +81,14 @@ przypadku używania istniejących adapterów WSGI dla modułu mod_python
 lub CGI.
 
 %package py3
-Summary:	WSGI interface for the Apache Web server
-Summary(pl.UTF-8):	Interfejs WSGI dla serwera WWW Apache
+Summary:	Python 3.x WSGI interface for the Apache Web server
+Summary(pl.UTF-8):	Interfejs WSGI Pythona 3.x dla serwera WWW Apache
 Group:		Networking/Daemons
 Requires:	apache(modules-api) = %{apache_modules_api}
 Requires:	apr >= 1:1.0.0
-Requires:	python3-modules
+Requires:	python3-modules >= 1:3.3
 Provides:	apache(mod_wsgi) = %{version}-%{release}
-Conflicts:	%{name} < 4.5.7-0.2
+Conflicts:	apache-mod_wsgi < 4.5.7-0.2
 Conflicts:	%{name}-py2
 # http://helpful.knobs-dials.com/index.php/Mod_wsgi_notes#PyEval_AcquireThread:_non-NULL_old_thread_state
 Conflicts:	apache-mod_python3
@@ -120,6 +120,7 @@ lub CGI.
 %configure \
 	--with-python=%{__python} \
 	--with-apxs=%{apxs}
+
 %{__make}
 %{__make} install DESTDIR=$(pwd)/py2
 %{__make} clean
@@ -129,6 +130,7 @@ lub CGI.
 %configure \
 	--with-python=%{__python3} \
 	--with-apxs=%{apxs}
+
 %{__make}
 %{__make} install DESTDIR=$(pwd)/py3
 %{__make} clean
@@ -137,14 +139,16 @@ lub CGI.
 %install
 rm -rf $RPM_BUILD_ROOT
 install -d $RPM_BUILD_ROOT{%{_pkglibdir},%{_sysconfdir}}
+
 %if %{with python2}
 cp -a py2/* $RPM_BUILD_ROOT
-mv $RPM_BUILD_ROOT%{_pkglibdir}/mod_%{mod_name}{,-py2}.so
+%{__mv} $RPM_BUILD_ROOT%{_pkglibdir}/mod_%{mod_name}{,-py2}.so
 sed -e 's/mod_wsgi.so/mod_wsgi-py2.so/' %{SOURCE1} > $RPM_BUILD_ROOT%{_sysconfdir}/61_mod_wsgi-py2.conf
 %endif
+
 %if %{with python3}
 cp -a py3/* $RPM_BUILD_ROOT
-mv $RPM_BUILD_ROOT%{_pkglibdir}/mod_%{mod_name}{,-py3}.so
+%{__mv} $RPM_BUILD_ROOT%{_pkglibdir}/mod_%{mod_name}{,-py3}.so
 sed -e 's/mod_wsgi.so/mod_wsgi-py3.so/' %{SOURCE1} > $RPM_BUILD_ROOT%{_sysconfdir}/61_mod_wsgi-py3.conf
 %endif
 
@@ -153,8 +157,8 @@ rm -rf $RPM_BUILD_ROOT
 
 %triggerpostun py2 -- %{name} < 4.5.7-0.2
 if [ -f %{_sysconfdir}/61_mod_wsgi.conf.rpmsave ]; then
-	mv %{_sysconfdir}/61_mod_wsgi-py2.conf{,.rpmnew}
-	mv %{_sysconfdir}/61_mod_wsgi{.conf.rpmsave,-py2.conf}
+	mv -f %{_sysconfdir}/61_mod_wsgi-py2.conf{,.rpmnew}
+	mv -f %{_sysconfdir}/61_mod_wsgi{.conf.rpmsave,-py2.conf}
 	%{__sed} -i -e 's/mod_wsgi.so/mod_wsgi-py2.so/' $RPM_BUILD_ROOT%{_sysconfdir}/61_mod_wsgi-py2.conf
 	%service -q httpd restart
 fi
